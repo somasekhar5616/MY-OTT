@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MY OTT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#020b1a;color:#fff;font-family:Arial}
+.page{display:none;min-height:100vh;padding:16px}
+.visible{display:block}
+.card{max-width:420px;margin:40px auto;background:#0f1b2e;border-radius:16px;padding:20px}
+h2{text-align:center;margin-bottom:15px;color:#6aa8ff}
+input{width:100%;padding:12px;margin-bottom:10px;border-radius:10px;border:0;background:#0a1a33;color:#fff}
+button{width:100%;padding:12px;border-radius:10px;border:0;background:#0d6efd;color:#fff;font-weight:bold;cursor:pointer}
+button.secondary{background:#0a1a33;border:1px solid #1e3a8a;color:#93c5fd;margin-top:8px}
+.msg{text-align:center;margin-top:8px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:15px}
+.item{background:#0a1a33;border-radius:12px;padding:8px;text-align:center}
+.item img{width:100%;height:140px;object-fit:cover;border-radius:8px}
+.logout{margin-top:15px;background:#1e293b}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginPage" class="page visible">
+  <div class="card">
+    <h2>MY OTT</h2>
+    <input id="loginUser" placeholder="Username">
+    <input id="loginPass" type="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <button class="secondary" onclick="show('registerPage')">Register</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div id="registerPage" class="page">
+  <div class="card">
+    <h2>Register</h2>
+    <input id="regUser" placeholder="Username">
+    <input id="regPass" type="password" placeholder="Password">
+    <button onclick="register()">Create Account</button>
+    <button class="secondary" onclick="show('loginPage')">Back</button>
+    <div id="regMsg" class="msg"></div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="homePage" class="page">
+  <div class="card">
+    <h2>Home</h2>
+    <div id="content" class="grid"></div>
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbwm586lGwT8ytQSCW2bxMPjKBI2LYAok6olHqjrkHLGeEjOq3TTo8wSnGer1jAPw3cZ/exec";
+const el = id => document.getElementById(id);
+
+function show(p){
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("visible"));
+  el(p).classList.add("visible");
+}
+
+/* LOGIN */
+async function login(){
+  el("loginMsg").textContent="Checking...";
+  try{
+    const r = await fetch(API,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        action:"login",
+        username:el("loginUser").value,
+        password:el("loginPass").value
+      })
+    });
+    const d = await r.json();
+    if(!d.success){
+      el("loginMsg").textContent = d.status || d.message;
+      return;
+    }
+    localStorage.setItem("user", el("loginUser").value);
+    show("homePage");
+    loadContent();
+  }catch(e){
+    el("loginMsg").textContent="Server error";
+  }
+}
+
+/* REGISTER */
+async function register(){
+  const r = await fetch(API,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      action:"register",
+      username:el("regUser").value,
+      password:el("regPass").value
+    })
+  });
+  const d = await r.json();
+  el("regMsg").textContent = d.message;
+}
+
+/* LOAD CONTENT */
+async function loadContent(){
+  const r = await fetch(API+"?action=content");
+  const d = await r.json();
+  const box = el("content");
+  box.innerHTML="";
+  (d.data||[]).forEach(i=>{
+    box.innerHTML += `
+      <div class="item" onclick="window.open('${i.link}')">
+        <img src="${i.logo}">
+        <div>${i.name}</div>
+      </div>`;
+  });
+}
+
+/* LOGOUT */
+function logout(){
+  localStorage.removeItem("user");
+  show("loginPage");
+}
+
+/* AUTO LOGIN */
+if(localStorage.getItem("user")){
+  show("homePage");
+  loadContent();
+}
+</script>
+
+</body>
+</html>
